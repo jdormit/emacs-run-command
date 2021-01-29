@@ -200,7 +200,7 @@ said functions)."
              (erase-buffer)))
          (with-current-buffer
              (make-term buffer-name-base shell-file-name nil "-c" (format "echo %s && %s" command-line command-line))
-           (compilation-minor-mode)
+           (compilation-shell-minor-mode)
            (run-command-term-minor-mode)
            (setq-local run-command-command-spec command-spec)
            (display-buffer (current-buffer))))))))
