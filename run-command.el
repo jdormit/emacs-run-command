@@ -64,7 +64,8 @@ Terminal Mode: use a buffer in `term-mode'.
 
 Compilation Mode: use a buffer in `compilation-mode'."
   :type '(choice (const :tag "Terminal Mode" term)
-                 (const :tag "Compilation Mode" compile)))
+                 (const :tag "Compilation Mode" compile)
+                 (const :tag "Async Shell Command" async-shell)))
 
 (defcustom run-command-recipes nil
   "List of functions that will produce runnable commands.
@@ -175,7 +176,8 @@ said functions)."
            (default-directory working-dir))
       (pcase run-command-run-method
         ('compile (run-command--run-compile command-line buffer-base-name))
-        ('term (run-command--run-term command-line buffer-base-name))))))
+        ('term (run-command--run-term command-line buffer-base-name))
+        ('async-shell (run-command--run-async-shell command-spec buffer-base-name))))))
 
 ;;; Run method `compile'
 
@@ -223,6 +225,35 @@ Executes COMMAND-LINE in buffer BUFFER-BASE-NAME."
   "Provide `recompile' in term buffers with command run via `run-command'."
   (interactive)
   (run-command--run run-command-command-spec))
+
+;;; Run method `async-shell'. Reuses much of run-command--run-term machinery
+
+(defun run-command--run-async-shell (command-spec buffer-base-name)
+  "Command execution backend for when run method is `async-shell'.
+
+Executes COMMAND-SPEC in buffer BUFFER-BASE-NAME."
+  (let* ((command-line (plist-get command-spec :command-line))
+         (buffer-name (concat "*" buffer-base-name "*"))
+         (proc (get-buffer-process (get-buffer buffer-name))))
+    (when (and proc
+               (yes-or-no-p "A process is running; kill it?"))
+      (condition-case ()
+          (progn
+            (interrupt-process proc)
+            (sit-for 1)
+            (delete-process proc))
+        (error nil)))
+    (when (not (get-buffer-process (get-buffer buffer-name)))
+      (let ((cmd (format "echo \"%s\" && %s" command-line command-line))
+            (async-shell-fn (if (featurep 'with-editor)
+                                #'with-editor-async-shell-command
+                              #'async-shell-command)))
+        (funcall async-shell-fn cmd buffer-name)
+        (with-current-buffer buffer-name
+          (setq-local run-command-command-spec command-spec)
+          (compilation-shell-minor-mode)
+          (run-command-term-minor-mode)
+          (display-buffer (current-buffer)))))))
 
 ;;; Completion via helm
 
