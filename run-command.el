@@ -301,7 +301,9 @@ Executes COMMAND-SPEC in buffer BUFFER-BASE-NAME."
               (run-command--ivy-targets)
               :caller 'run-command--ivy
               :history 'run-command--ivy-history
-              :action 'run-command--ivy-action)))
+              :action '(1
+                        ("o" run-command--ivy-action "Run command")
+                        ("e" run-command--ivy-edit-action "Edit and run command")))))
 
 (defun run-command--ivy-targets ()
   "Create Ivy targets from all recipes."
