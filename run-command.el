@@ -245,7 +245,7 @@ Executes COMMAND-SPEC in buffer BUFFER-BASE-NAME."
         (error nil)))
     (when (not (get-buffer-process (get-buffer buffer-name)))
       (let ((cmd (format "echo \"%s\" && %s" command-line command-line))
-            (async-shell-fn (if (featurep 'with-editor)
+            (async-shell-fn (if (fboundp 'with-editor-async-shell-command)
                                 #'with-editor-async-shell-command
                               #'async-shell-command)))
         (funcall async-shell-fn cmd buffer-name)
